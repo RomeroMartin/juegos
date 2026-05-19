@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zona de Juegos 🎮</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:   #0f0f1a;
+      --card: #1a1a2e;
+      --gold: #ffd700;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 48px;
+      color: white;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      text-align: center;
+      padding: 36px 20px 24px;
+      background: linear-gradient(180deg, rgba(255,107,157,0.07) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      margin-bottom: 36px;
+    }
+
+    .logo { font-size: 3rem; margin-bottom: 8px; }
+
+    header h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      color: var(--gold);
+      text-shadow: 0 0 24px rgba(255,215,0,0.35);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: clamp(0.85rem, 2vw, 1rem);
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 1px;
+    }
+
+    /* ── GRID ── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 22px;
+      width: min(960px, 92vw);
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border-radius: 22px;
+      border: 2px solid rgba(255,255,255,0.07);
+      padding: 30px 22px 24px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+
+    /* Brillo de fondo por card */
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 0%, var(--ac) 0%, transparent 68%);
+      opacity: 0.07;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .card:hover {
+      transform: translateY(-7px);
+      border-color: var(--ac);
+      box-shadow: 0 14px 44px rgba(0,0,0,0.45), 0 0 32px var(--ac-glow);
+    }
+
+    .card:hover::before { opacity: 0.15; }
+
+    .card-emoji {
+      font-size: 3.4rem;
+      line-height: 1;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+    }
+
+    .card-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.45rem;
+      color: var(--ac);
+      letter-spacing: 1px;
+      text-shadow: 0 0 14px var(--ac-glow);
+    }
+
+    .card-desc {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.6;
+      max-width: 230px;
+    }
+
+    .card-tag {
+      background: var(--ac);
+      color: #111;
+      font-size: 0.7rem;
+      font-weight: 900;
+      padding: 3px 13px;
+      border-radius: 20px;
+      letter-spacing: 1.5px;
+      margin-top: 2px;
+    }
+
+    /* Botón — es un <a> con estilo de botón */
+    .play-btn {
+      display: block;
+      margin-top: 8px;
+      padding: 11px 0;
+      width: 100%;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.05rem;
+      letter-spacing: 1px;
+      text-decoration: none;
+      border-radius: 50px;
+      background: var(--ac);
+      color: #111;
+      font-weight: 900;
+      box-shadow: 0 4px 18px var(--ac-glow);
+      transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+      text-align: center;
+    }
+
+    .play-btn:hover  { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 6px 24px var(--ac-glow); }
+    .play-btn:active { transform: translateY(0); filter: brightness(0.95); }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: 44px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.2);
+      letter-spacing: 1px;
+      text-align: center;
+    }
+
+    /* ── Decoración: estrellas de fondo ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 12%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 55% 28%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 82% 8%,  rgba(255,255,255,0.45) 0%, transparent 100%),
+        radial-gradient(1px 1px at 38% 55%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 8%  72%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 92% 65%, rgba(255,255,255,0.3)  0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 88%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 92%, rgba(255,255,255,0.3)  0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header, #grid, footer { position: relative; z-index: 1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">🍽️</div>
+    <h1>Zona de Juegos</h1>
+    <p>¡Elegí tu juego y a divertirse!</p>
+  </header>
+
+  <div id="grid">
+
+    <div class="card" style="--ac:#ff6b9d; --ac-glow:rgba(255,107,157,0.35);">
+      <div class="card-emoji">🍔</div>
+      <div class="card-title">¡A Comer!</div>
+      <div class="card-desc">La comida cae del cielo. ¡Agarrá todo antes de que toque el suelo!</div>
+      <div class="card-tag">REFLEJOS</div>
+      <a class="play-btn" href="comer.html">¡Jugar! 🕹️</a>
+    </div>
+
+    <div class="card" style="--ac:#ff6a00; --ac-glow:rgba(255,106,0,0.35);">
+      <div class="card-emoji">🔥</div>
+      <div class="card-title">Flipá la Parrilla</div>
+      <div class="card-desc">Retirá la carne en el momento justo. ¡Ni cruda ni quemada!</div>
+      <div class="card-tag">TIMING</div>
+      <a class="play-btn" href="parrilla.html">¡Jugar! 🕹️</a>
+    </div>
+
+    <div class="card" style="--ac:#ffd700; --ac-glow:rgba(255,215,0,0.3);">
+      <div class="card-emoji">🧑‍🍳</div>
+      <div class="card-title">Mesero Veloz</div>
+      <div class="card-desc">Tomá pedidos, buscá el plato y entregalo antes de que el cliente se vaya.</div>
+      <div class="card-tag">ESTRATEGIA</div>
+      <a class="play-btn" href="mesero.html">¡Jugar! 🕹️</a>
+    </div>
+
+    <div class="card" style="--ac:#00e676; --ac-glow:rgba(0,230,118,0.3);">
+      <div class="card-emoji">🔪</div>
+      <div class="card-title">Chef Picador</div>
+      <div class="card-desc">Picá los ingredientes que pasan por la cinta. ¡Cuidado con el veneno!</div>
+      <div class="card-tag">VELOCIDAD</div>
+      <a class="play-btn" href="picador.html">¡Jugar! 🕹️</a>
+    </div>
+
+    <div class="card" style="--ac:#00e5ff; --ac-glow:rgba(0,229,255,0.3);">
+      <div class="card-emoji">🍹</div>
+      <div class="card-title">Bartender Rush</div>
+      <div class="card-desc">Armá los tragos en el orden correcto antes de que se acabe la paciencia.</div>
+      <div class="card-tag">MEMORIA</div>
+      <a class="play-btn" href="bartender.html">¡Jugar! 🕹️</a>
+    </div>
+
+  </div>
+
+  <footer>🍴 Zona de Juegos &nbsp;·&nbsp; ¡Divertite mientras esperás!</footer>
+
+</body>
+</html>

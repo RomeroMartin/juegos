@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>¡Flipá la Parrilla! 🔥</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: linear-gradient(160deg, #1a0800 0%, #3a1500 60%, #1a0800 100%);
+      font-family: 'Nunito', sans-serif;
+      text-align: center;
+      color: white;
+      overflow: hidden;
+      touch-action: none;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(1.3rem, 3.8vw, 2rem);
+      margin: 8px 0 4px;
+      color: #fff;
+      text-shadow: 0 0 20px #ff6a00, 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    #hud {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 6px;
+    }
+
+    .hud-box {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,150,50,0.25);
+      backdrop-filter: blur(8px);
+      padding: 5px 18px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .hud-box span { color: #ffd700; font-size: 1.1rem; }
+
+    #burns-display { font-size: 1.2rem; letter-spacing: 3px; }
+
+    canvas {
+      display: block;
+      border: 3px solid rgba(255,106,0,0.4);
+      border-radius: 16px;
+      box-shadow: 0 0 50px rgba(255,106,0,0.25), 0 0 0 1px rgba(255,255,255,0.04);
+      max-width: 98vw;
+      max-height: calc(100vh - 130px);
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      backdrop-filter: blur(6px);
+    }
+
+    .panel {
+      background: linear-gradient(135deg, #3a1500, #1a0800);
+      border: 2px solid rgba(255,106,0,0.35);
+      border-radius: 24px;
+      padding: 32px 40px;
+      color: white;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 0 60px rgba(255,106,0,0.12);
+    }
+
+    .panel h2 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 2rem;
+      color: #ff6a00;
+      margin-bottom: 12px;
+    }
+
+    .panel p {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+
+    .panel .big-score {
+      font-family: 'Fredoka One', cursive;
+      font-size: 3rem;
+      color: #ffd700;
+      margin: 8px 0;
+    }
+
+    .panel .record-badge {
+      background: linear-gradient(90deg, #ffd700, #ff9500);
+      color: #1a0800;
+      font-weight: 900;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      display: none;
+      margin: 8px auto;
+      width: fit-content;
+    }
+
+    .instruction-list {
+      text-align: left;
+      margin: 12px 0;
+    }
+
+    .instruction-list li {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 8px;
+      list-style: none;
+      padding-left: 4px;
+    }
+
+    .btn {
+      margin-top: 18px;
+      padding: 14px 36px;
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.3rem;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, #ff6a00, #ff4757);
+      color: white;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 20px rgba(255,106,0,0.4);
+      transition: transform 0.1s, box-shadow 0.1s;
+      width: 100%;
+    }
+
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      font-family: 'Nunito', 'Arial', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-decoration: none;
+      backdrop-filter: blur(6px);
+      transition: background 0.15s;
+    }
+    #back-btn:hover { background: rgba(0,0,0,0.8); }
+  </style>
+</head>
+<body>
+  <a id="back-btn" href="juegos.html">← Menú</a>
+
+  <h1>¡Flipá la Parrilla! 🔥🥩</h1>
+
+  <div id="hud">
+    <div class="hud-box">Puntaje: <span id="score">0</span></div>
+    <div class="hud-box" id="burns-display">💨💨💨</div>
+    <div class="hud-box">Récord: <span id="best">0</span></div>
+  </div>
+
+  <canvas id="game" width="800" height="500"></canvas>
+
+  <!-- Inicio -->
+  <div class="overlay" id="startScreen">
+    <div class="panel">
+      <h2>¡Flipá la Parrilla! 🔥</h2>
+      <p>¡La carne se cocina sola! Retirala en el momento justo.</p>
+      <ul class="instruction-list">
+        <li>🖱️ <strong>Click / Tap</strong> sobre la carne para retirarla</li>
+        <li>🟡 Barra amarilla = cocción perfecta → más puntos</li>
+        <li>🔴 Barra roja = se está quemando → ¡retirá ya!</li>
+        <li>💨 Si se quema, perdés una chance. Tenés <strong>3 en total</strong></li>
+      </ul>
+      <button class="btn" onclick="startGame()">¡A asar! 🍖</button>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div class="overlay" id="gameOverScreen" style="display:none;">
+    <div class="panel">
+      <h2>¡Se quemó todo! 🔥</h2>
+      <div class="big-score" id="finalScore">0</div>
+      <p>puntos</p>
+      <div class="record-badge" id="newRecord">🏆 ¡NUEVO RÉCORD!</div>
+      <p style="margin-top:8px; color: rgba(255,255,255,0.5); font-size:0.85rem;">Récord histórico: <span id="bestFinal">0</span></p>
+      <button class="btn" onclick="restart()">Volver a asar 🔄</button>
+      <a href="juegos.html" style="display:block;margin-top:10px;text-align:center;color:rgba(255,255,255,0.45);font-size:0.82rem;text-decoration:none;letter-spacing:1px;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">← Volver al menú de juegos</a>
+
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreEl  = document.getElementById("score");
+    const bestEl   = document.getElementById("best");
+    const burnsEl  = document.getElementById("burns-display");
+    const gameOverScreen = document.getElementById("gameOverScreen");
+    const startScreen    = document.getElementById("startScreen");
+    const finalScoreEl   = document.getElementById("finalScore");
+    const newRecordEl    = document.getElementById("newRecord");
+    const bestFinalEl    = document.getElementById("bestFinal");
+
+    let score = 0;
+    let burnsLeft = 3;         // vidas (carnes quemadas permitidas)
+    let bestScore = parseInt(localStorage.getItem("parrilla_best") || "0");
+    bestEl.textContent = bestScore;
+
+    let gameRunning = false;
+    let time = 0;
+    let grillHeat = 1;
+
+    const grillY = 320;
+    const positions = [130, 260, 390, 520, 650];
+
+    let meats = [];
+    const floatingTexts = [];
+    const smokeParticles = [];
+
+    const meatTypes = [
+      { emoji: "🥩", points: 30, cookTimeMax: 90  },
+      { emoji: "🍖", points: 40, cookTimeMax: 110 },
+      { emoji: "🍗", points: 25, cookTimeMax: 75  }
+    ];
+
+    function updateBurnsDisplay() {
+      const flames = "🔥".repeat(burnsLeft);
+      const dead   = "💀".repeat(Math.max(0, 3 - burnsLeft));
+      burnsEl.textContent = flames + dead;
+    }
+
+    function isPositionOccupied(x) {
+      return meats.some(m => Math.abs(m.x - x) < 90);
+    }
+
+    function spawnMeat() {
+      const available = positions.filter(p => !isPositionOccupied(p));
+      if (available.length === 0) return;
+      const pos  = available[Math.floor(Math.random() * available.length)];
+      const type = meatTypes[Math.floor(Math.random() * meatTypes.length)];
+      meats.push({
+        x: pos, y: grillY,
+        type,
+        cookTime: 0,
+        removed: false,
+        scaleAnim: 1,       // para animación de click
+        wobble: 0
+      });
+    }
+
+    /* ── Textos flotantes ── */
+    function spawnFloating(x, y, text, color) {
+      floatingTexts.push({ x, y, text, color, life: 1, vy: -1.8 });
+    }
+
+    /* ── Humo ── */
+    function spawnSmoke(x, y) {
+      for (let i = 0; i < 5; i++) {
+        smokeParticles.push({
+          x: x + (Math.random() - 0.5) * 40,
+          y,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: -1.5 - Math.random() * 1.5,
+          life: 1,
+          size: 20 + Math.random() * 20
+        });
+      }
+    }
+
+    /* ── INPUT ── */
+    function handleTap(clientX, clientY) {
+      if (!gameRunning) return;
+      const rect  = canvas.getBoundingClientRect();
+      const scale = canvas.width / rect.width;
+      const tapX  = (clientX - rect.left) * scale;
+      const tapY  = (clientY - rect.top)  * scale;
+
+      for (let i = meats.length - 1; i >= 0; i--) {
+        const m = meats[i];
+        if (m.removed) continue;
+        if (Math.abs(m.x - tapX) < 55 && Math.abs(m.y + 10 - tapY) < 55) {
+          retireMeat(i);
+          return;
+        }
+      }
+    }
+
+    canvas.addEventListener("touchstart", e => {
+      e.preventDefault();
+      handleTap(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+
+    canvas.addEventListener("mousedown", e => handleTap(e.clientX, e.clientY));
+
+    /* ── Retirar carne ── */
+    function retireMeat(i) {
+      const m = meats[i];
+      if (m.removed) return;
+      m.removed = true;
+
+      const progress = m.cookTime / m.type.cookTimeMax;
+      let pts   = m.type.points;
+      let label = "";
+      let color = "#ffd700";
+
+      if (progress < 0.35) {
+        // Cruda — poco puntaje
+        pts   = Math.floor(pts * 0.4);
+        label = `🩸 Cruda +${pts}`;
+        color = "#ff9999";
+      } else if (progress < 0.75) {
+        // Perfecta
+        pts   = Math.floor(pts * 1.5);
+        label = `✅ Perfecta +${pts}`;
+        color = "#00e676";
+      } else if (progress < 0.95) {
+        // Bien cocida — vale igual
+        label = `👍 Cocida +${pts}`;
+        color = "#ffd700";
+      } else {
+        // Casi quemada
+        pts   = Math.floor(pts * 0.5);
+        label = `⚠️ A punto de quemarse +${pts}`;
+        color = "#ff6a00";
+      }
+
+      score += pts;
+      scoreEl.textContent = score;
+      spawnFloating(m.x, m.y - 50, label, color);
+
+      // Animación de "jump"
+      m.scaleAnim = 1.4;
+      setTimeout(() => meats.splice(meats.indexOf(m), 1), 300);
+    }
+
+    /* ── UPDATE ── */
+    function update() {
+      if (!gameRunning) return;
+      time++;
+
+      if (time % 420 === 0) {
+        grillHeat += 0.2;
+      }
+
+      const spawnRate = Math.max(38, 80 - Math.floor(grillHeat * 6));
+      if (time % spawnRate === 0) {
+        spawnMeat();
+        if (grillHeat > 2.5 && Math.random() < 0.45) spawnMeat();
+      }
+
+      // Carnes
+      for (let i = meats.length - 1; i >= 0; i--) {
+        const m = meats[i];
+        if (m.removed) continue;
+        m.cookTime += grillHeat;
+        m.wobble = Math.sin(time * 0.08 + i) * 3;
+        m.scaleAnim += (1 - m.scaleAnim) * 0.2;
+
+        const progress = m.cookTime / m.type.cookTimeMax;
+
+        // Humo cuando está a punto de quemarse
+        if (progress > 0.82 && time % 8 === 0) {
+          spawnSmoke(m.x, m.y - 30);
+        }
+
+        // ¡Se quemó!
+        if (m.cookTime > m.type.cookTimeMax + 30) {
+          meats.splice(i, 1);
+          burnsLeft--;
+          updateBurnsDisplay();
+          spawnFloating(m.x ?? 400, m.y ?? grillY, "💨 ¡Quemada!", "#ff4757");
+
+          if (burnsLeft <= 0) {
+            gameRunning = false;
+            finalScoreEl.textContent = score;
+            bestFinalEl.textContent  = bestScore;
+            if (score > bestScore) {
+              bestScore = score;
+              localStorage.setItem("parrilla_best", bestScore);
+              bestEl.textContent = bestScore;
+              newRecordEl.style.display = "block";
+            } else {
+              newRecordEl.style.display = "none";
+            }
+            setTimeout(() => { gameOverScreen.style.display = "flex"; }, 400);
+          }
+        }
+      }
+
+      // Humo partículas
+      for (let i = smokeParticles.length - 1; i >= 0; i--) {
+        const s = smokeParticles[i];
+        s.x += s.vx; s.y += s.vy;
+        s.life -= 0.025;
+        if (s.life <= 0) smokeParticles.splice(i, 1);
+      }
+
+      // Textos flotantes
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const t = floatingTexts[i];
+        t.y += t.vy; t.life -= 0.025;
+        if (t.life <= 0) floatingTexts.splice(i, 1);
+      }
+    }
+
+    /* ── DRAW ── */
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Fondo
+      const bg = ctx.createRadialGradient(400, 250, 0, 400, 250, 500);
+      bg.addColorStop(0, "rgba(60,25,5,0.9)");
+      bg.addColorStop(1, "rgba(15,5,0,1)");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Parrilla base
+      ctx.fillStyle = "#111";
+      ctx.beginPath();
+      ctx.roundRect(60, grillY - 40, 680, 140, 10);
+      ctx.fill();
+
+      // Brillo parrilla (calor)
+      const heatAlpha = Math.min(0.5, (grillHeat - 1) * 0.15);
+      ctx.fillStyle = `rgba(255,120,0,${heatAlpha})`;
+      ctx.beginPath();
+      ctx.roundRect(60, grillY - 40, 680, 140, 10);
+      ctx.fill();
+
+      // Rejas de la parrilla
+      ctx.strokeStyle = "#3a3a3a";
+      ctx.lineWidth = 12;
+      ctx.lineCap = "round";
+      for (let i = 80; i < 730; i += 44) {
+        ctx.beginPath();
+        ctx.moveTo(i, grillY - 30);
+        ctx.lineTo(i, grillY + 85);
+        ctx.stroke();
+      }
+
+      // Líneas horizontales (estilo parrilla argentina)
+      ctx.strokeStyle = "#2a2a2a";
+      ctx.lineWidth = 5;
+      for (let j = grillY - 10; j < grillY + 85; j += 30) {
+        ctx.beginPath();
+        ctx.moveTo(68, j);
+        ctx.lineTo(732, j);
+        ctx.stroke();
+      }
+
+      // Brasas
+      ctx.font = "30px Arial";
+      ctx.textAlign = "center";
+      const brasaPositions = [110, 200, 310, 400, 500, 590, 680];
+      for (let bx of brasaPositions) {
+        const flicker = Math.sin(time * 0.15 + bx) * 0.3 + 0.7;
+        ctx.globalAlpha = flicker;
+        ctx.fillText("🔥", bx, grillY + 145);
+      }
+      ctx.globalAlpha = 1;
+
+      // Humo partículas
+      for (let s of smokeParticles) {
+        ctx.globalAlpha = s.life * 0.35;
+        ctx.fillStyle = "#aaa";
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // Carnes
+      for (let m of meats) {
+        if (m.removed && m.scaleAnim < 1.05) continue;
+
+        const progress = Math.min(m.cookTime / m.type.cookTimeMax, 1);
+
+        // Barra de cocción
+        const barW = 70, barH = 10;
+        const barX = m.x - barW / 2;
+        const barY = m.y - 68;
+
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.beginPath();
+        ctx.roundRect(barX - 1, barY - 1, barW + 2, barH + 2, 4);
+        ctx.fill();
+
+        // Color de la barra según progreso
+        let barColor;
+        if (progress < 0.4)       barColor = "#64b5f6"; // cruda → azulada
+        else if (progress < 0.75) barColor = "#00e676"; // perfecta → verde
+        else if (progress < 0.92) barColor = "#ffd700"; // cocida → amarillo
+        else                      barColor = "#ff4757"; // quemada → rojo
+
+        ctx.fillStyle = barColor;
+        ctx.beginPath();
+        ctx.roundRect(barX, barY, barW * progress, barH, 4);
+        ctx.fill();
+
+        // Icono de estado
+        const stateIcon = progress < 0.4 ? "🩸" : progress < 0.75 ? "✅" : progress < 0.92 ? "👍" : "⚠️";
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(stateIcon, m.x + barW / 2 + 4, barY + 10);
+
+        // Carne (con escala de animación y wobble)
+        ctx.save();
+        ctx.translate(m.x + m.wobble, m.y + 22);
+        ctx.scale(m.scaleAnim, m.scaleAnim);
+        ctx.font = "58px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(m.type.emoji, 0, 0);
+        ctx.restore();
+      }
+
+      // Textos flotantes
+      for (let t of floatingTexts) {
+        ctx.globalAlpha = t.life;
+        ctx.font = "bold 17px 'Nunito', sans-serif";
+        ctx.fillStyle = t.color;
+        ctx.textAlign = "center";
+        ctx.fillText(t.text, t.x, t.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      startScreen.style.display = "none";
+      gameRunning = true;
+    }
+
+    function restart() {
+      meats = [];
+      floatingTexts.length = 0;
+      smokeParticles.length = 0;
+      score = 0; burnsLeft = 3; time = 0; grillHeat = 1;
+      scoreEl.textContent = "0";
+      updateBurnsDisplay();
+      gameOverScreen.style.display = "none";
+      gameRunning = true;
+    }
+
+    updateBurnsDisplay();
+    gameLoop();
+  </script>
+</body>
+</html>

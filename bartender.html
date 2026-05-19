@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Bartender Rush 🍹</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@600;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #080818;
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      touch-action: none;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    /* ── HUD ── */
+    h1 {
+      font-family: 'Bungee', cursive;
+      font-size: clamp(1.2rem, 4vw, 1.9rem);
+      color: #ff2d78;
+      margin: 8px 0 4px;
+      letter-spacing: 3px;
+      text-shadow: 0 0 14px #ff2d78;
+    }
+
+    #hud {
+      display: flex; gap: 10px; margin-bottom: 6px;
+    }
+    .pill {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: 0.85rem; font-weight: 700; color: #fff;
+    }
+    .pill span { color: #ffe600; }
+
+    /* ── ARENA ── */
+    #arena {
+      width: min(700px, 98vw);
+      background: #0d0d22;
+      border-radius: 14px;
+      border: 2px solid rgba(255,45,120,0.3);
+      box-shadow: 0 0 40px rgba(255,45,120,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;  /* clips nothing — contenido usa flex natural */
+    }
+
+    /* ── ZONA PEDIDOS ── */
+    #orders-zone {
+      display: flex;
+      gap: 8px;
+      padding: 12px 10px 10px;
+      background: #0d0d22;
+      min-height: 200px;
+    }
+
+    .order-slot {
+      flex: 1;
+      background: #111128;
+      border: 2px solid rgba(255,45,120,0.3);
+      border-radius: 12px;
+      padding: 10px 8px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      transition: border-color 0.2s;
+      min-height: 180px;
+    }
+
+    .order-slot.empty {
+      background: rgba(255,255,255,0.02);
+      border-color: rgba(255,255,255,0.07);
+      justify-content: center;
+    }
+
+    .order-slot.error {
+      animation: flash-red 0.35s ease;
+    }
+
+    @keyframes flash-red {
+      0%,100% { background: #111128; }
+      50%      { background: rgba(255,45,57,0.3); }
+    }
+
+    .order-slot.shake {
+      animation: wobble 0.5s ease;
+    }
+
+    @keyframes wobble {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-5px); }
+      40%     { transform: translateX(5px); }
+      60%     { transform: translateX(-4px); }
+      80%     { transform: translateX(4px); }
+    }
+
+    /* Secuencia de ingredientes */
+    .seq {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .seq-item {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: #1c1c38;
+      border: 2.5px solid var(--c);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+      font-size: 1.3rem;
+      position: relative;
+      transition: opacity 0.2s;
+    }
+
+    .seq-item.done {
+      opacity: 0.3;
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .seq-item .num {
+      font-size: 0.55rem;
+      color: rgba(255,255,255,0.45);
+      font-weight: 700;
+      line-height: 1;
+      position: absolute;
+      bottom: 2px;
+    }
+
+    /* Vaso */
+    .glass-wrap {
+      width: 44px; height: 56px;
+      position: relative;
+    }
+
+    .glass-outline {
+      position: absolute; inset: 0;
+      border: 2px solid rgba(255,255,255,0.45);
+      clip-path: polygon(8% 0%, 92% 0%, 84% 100%, 16% 100%);
+    }
+
+    .glass-fill {
+      position: absolute;
+      bottom: 0; left: 8%; right: 8%;
+      background: var(--fill-color, transparent);
+      height: var(--fill-pct, 0%);
+      transition: height 0.3s ease, background 0.3s ease;
+      clip-path: polygon(0% 0%, 100% 0%, 92% 100%, 8% 100%);
+      opacity: 0.75;
+    }
+
+    /* Barra paciencia */
+    .patience-wrap {
+      width: 100%;
+      background: rgba(0,0,0,0.4);
+      border-radius: 4px;
+      height: 7px;
+      margin-top: auto;
+      overflow: hidden;
+    }
+
+    .patience-bar {
+      height: 100%;
+      border-radius: 4px;
+      width: 100%;
+      transition: width 0.3s linear, background 0.3s;
+    }
+
+    .empty-icon { font-size: 1.8rem; opacity: 0.15; }
+
+    /* ── BARRA DE MADERA ── */
+    #counter {
+      height: 44px;
+      background: linear-gradient(180deg, #7a4510 0%, #9b6020 30%, #3e2206 100%);
+      border-top: 4px solid #b07830;
+      border-bottom: 4px solid #2a1204;
+      flex-shrink: 0;
+    }
+
+    /* ── ZONA BOTONES ── */
+    #buttons-zone {
+      background: #080812;
+      padding: 16px 8px 18px;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+    }
+
+    .ingr-btn {
+      flex: 1;
+      max-width: 95px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.12), rgba(0,0,0,0.45));
+      border: 1.5px solid rgba(255,255,255,0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      gap: 2px;
+      transition: transform 0.08s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ingr-btn:active { transform: scale(0.92); }
+
+    .ingr-btn .icon { font-size: clamp(1.2rem, 4vw, 1.7rem); line-height: 1; }
+    .ingr-btn .label { font-size: clamp(0.5rem, 1.5vw, 0.65rem); color: rgba(255,255,255,0.4); font-weight: 700; }
+
+    /* ── FLOAT TEXTS (absolutos sobre #arena) ── */
+    #arena { position: relative; }
+
+    .float-text {
+      position: absolute;
+      font-weight: 900;
+      font-size: 0.9rem;
+      pointer-events: none;
+      white-space: nowrap;
+      transform: translateX(-50%);
+      animation: floatUp 1.2s ease forwards;
+      z-index: 20;
+    }
+
+    @keyframes floatUp {
+      0%   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-55px); }
+    }
+
+    /* ── OVERLAYS ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; backdrop-filter: blur(8px);
+    }
+
+    .panel {
+      background: linear-gradient(145deg, #12122a, #0a0a1a);
+      border: 2px solid rgba(255,45,120,0.4);
+      border-radius: 22px;
+      padding: 26px 32px;
+      color: #fff; max-width: 360px; width: 92%;
+      text-align: center;
+    }
+
+    .panel h2 { font-family:'Bungee',cursive; font-size:1.8rem; color:#ff2d78; letter-spacing:3px; margin-bottom:10px; text-shadow:0 0 12px #ff2d78; }
+    .panel p { font-size:0.88rem; color:rgba(255,255,255,0.75); line-height:1.6; margin-bottom:5px; }
+    .big-score { font-family:'Bungee',cursive; font-size:3rem; color:#ffe600; letter-spacing:4px; margin:6px 0; text-shadow:0 0 16px #ffe600; }
+    .record-badge { background:linear-gradient(90deg,#ffe600,#ff8f00); color:#111; font-weight:900; padding:4px 14px; border-radius:20px; font-size:0.88rem; display:none; margin:5px auto; width:fit-content; }
+    .instr { text-align:left; margin:10px 0; }
+    .instr li { font-size:0.86rem; color:rgba(255,255,255,0.8); margin-bottom:6px; list-style:none; }
+
+    .btn {
+      margin-top:14px; padding:12px 28px;
+      font-family:'Bungee',cursive; font-size:1.2rem; letter-spacing:2px;
+      border:none; border-radius:50px;
+      background:linear-gradient(135deg,#ff2d78,#a0003a);
+      color:white; cursor:pointer;
+      box-shadow:0 4px 20px rgba(255,45,120,0.4);
+      transition:transform 0.1s; width:100%;
+    }
+    .btn:hover { transform:translateY(-2px); }
+    .btn:active { transform:translateY(0); }
+
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      font-family: 'Nunito', 'Arial', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-decoration: none;
+      backdrop-filter: blur(6px);
+      transition: background 0.15s;
+    }
+    #back-btn:hover { background: rgba(0,0,0,0.8); }
+  </style>
+</head>
+<body>
+  <a id="back-btn" href="juegos.html">← Menú</a>
+
+<h1>🍹 BARTENDER RUSH</h1>
+<div id="hud">
+  <div class="pill">Puntaje: <span id="score">0</span></div>
+  <div class="pill" id="lives-hud">❤️❤️❤️</div>
+  <div class="pill">Récord: <span id="best">0</span></div>
+</div>
+
+<div id="arena">
+  <div id="orders-zone">
+    <div class="order-slot empty" id="slot-0"><span class="empty-icon">🍸</span></div>
+    <div class="order-slot empty" id="slot-1"><span class="empty-icon">🍸</span></div>
+    <div class="order-slot empty" id="slot-2"><span class="empty-icon">🍸</span></div>
+  </div>
+
+  <div id="counter"></div>
+
+  <div id="buttons-zone" id="buttons-zone">
+    <!-- generado por JS -->
+  </div>
+</div>
+
+<!-- Inicio -->
+<div class="overlay" id="startScreen">
+  <div class="panel">
+    <h2>BARTENDER RUSH 🍹</h2>
+    <p>¡Los clientes piden tragos! Agregá los ingredientes en el orden correcto.</p>
+    <ul class="instr">
+      <li>🎯 Mirá la secuencia del pedido (de izq. a der.)</li>
+      <li>👆 Clickeá los ingredientes <strong>en ese orden exacto</strong></li>
+      <li>✅ Al completar → ¡trago listo y puntos!</li>
+      <li>❌ Si te equivocás → perdés ❤️ y los pedidos se resetean</li>
+      <li>⏳ Si se acaba el tiempo → el cliente se va y perdés ❤️</li>
+    </ul>
+    <button class="btn" onclick="startGame()">¡A mezclar! 🍸</button>
+  </div>
+</div>
+
+<!-- Game Over -->
+<div class="overlay" id="gameOverScreen" style="display:none;">
+  <div class="panel">
+    <h2>¡BARRA CERRADA!</h2>
+    <div class="big-score" id="finalScore">0</div>
+    <p>puntos</p>
+    <div class="record-badge" id="newRecord">🏆 ¡NUEVO RÉCORD!</div>
+    <p style="margin-top:8px;color:rgba(255,255,255,0.35);font-size:0.8rem;">Récord: <span id="bestFinal">0</span></p>
+    <button class="btn" onclick="restart()">Otra ronda 🔄</button>
+      <a href="juegos.html" style="display:block;margin-top:10px;text-align:center;color:rgba(255,255,255,0.45);font-size:0.82rem;text-decoration:none;letter-spacing:1px;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">← Volver al menú de juegos</a>
+
+  </div>
+</div>
+
+<script>
+/* ── INGREDIENTES ── */
+const INGR = [
+  { emoji:"🧊", name:"Hielo",    color:"#00e5ff" },
+  { emoji:"🍋", name:"Limón",    color:"#ffe600" },
+  { emoji:"🍓", name:"Frutilla", color:"#ff2d78" },
+  { emoji:"🌿", name:"Menta",    color:"#00e676" },
+  { emoji:"🍊", name:"Naranja",  color:"#ff8c00" },
+  { emoji:"🫐", name:"Arándano", color:"#7c4dff" },
+];
+
+/* ── DOM refs ── */
+const scoreEl     = document.getElementById("score");
+const bestEl      = document.getElementById("best");
+const livesEl     = document.getElementById("lives-hud");
+const goScreen    = document.getElementById("gameOverScreen");
+const startScreen = document.getElementById("startScreen");
+const finalEl     = document.getElementById("finalScore");
+const newRecEl    = document.getElementById("newRecord");
+const bestFinEl   = document.getElementById("bestFinal");
+const arena       = document.getElementById("arena");
+const ordersZone  = document.getElementById("orders-zone");
+const buttonsZone = document.getElementById("buttons-zone");
+
+/* ── ESTADO ── */
+let score = 0, lives = 3, time = 0, speed = 1, gameRunning = false;
+let bestScore = parseInt(localStorage.getItem("bartender_v3") || "0");
+bestEl.textContent = bestScore;
+let orders = [], orderId = 0, ticker = null;
+
+/* ── BOTONES ingredientes ── */
+INGR.forEach((ingr, i) => {
+  const btn = document.createElement("button");
+  btn.className   = "ingr-btn";
+  btn.innerHTML   = `<span class="icon">${ingr.emoji}</span><span class="label">${ingr.name}</span>`;
+  btn.addEventListener("click", () => pressIngredient(i));
+  buttonsZone.appendChild(btn);
+});
+
+/* ── LIVES ── */
+function updateLives() {
+  livesEl.textContent = "❤️".repeat(lives) + "🖤".repeat(Math.max(0, 3-lives));
+}
+
+/* ── FLOAT TEXT ── */
+function spawnFloat(text, color, slotEl) {
+  const f = document.createElement("div");
+  f.className   = "float-text";
+  f.textContent = text;
+  f.style.color = color;
+  // Posicionar sobre el slot o en el centro de la arena
+  if (slotEl) {
+    const sr = slotEl.getBoundingClientRect();
+    const ar = arena.getBoundingClientRect();
+    f.style.left = (sr.left - ar.left + sr.width/2) + "px";
+    f.style.top  = (sr.top  - ar.top  - 10) + "px";
+  } else {
+    f.style.left = "50%";
+    f.style.top  = "55%";
+  }
+  arena.appendChild(f);
+  f.addEventListener("animationend", () => f.remove());
+}
+
+/* ── RENDER SLOT ── */
+function renderSlot(slotIdx) {
+  const el  = document.getElementById(`slot-${slotIdx}`);
+  const ord = orders.find(o => o.slot === slotIdx);
+
+  if (!ord) {
+    el.className = "order-slot empty";
+    el.innerHTML = `<span class="empty-icon">🍸</span>`;
+    return;
+  }
+
+  // Paciencia → color
+  const pct   = Math.max(0, (1 - ord.anger) * 100);
+  const hue   = Math.floor(pct * 1.2);  // 120=verde, 0=rojo
+  const barColor = `hsl(${hue}, 85%, 52%)`;
+
+  // Secuencia HTML
+  const seqHTML = ord.seq.map((ingr, si) => {
+    const done = si < ord.progress;
+    return `<div class="seq-item ${done?'done':''}" style="--c:${done?'rgba(255,255,255,0.15)':ingr.color}">
+      ${done ? '✓' : ingr.emoji}
+      <span class="num">${si+1}°</span>
+    </div>`;
+  }).join("");
+
+  // Vaso: color del último ingrediente agregado
+  const fillPct  = Math.round((ord.progress / ord.seq.length) * 100);
+  const fillColor = ord.progress > 0 ? ord.seq[ord.progress-1].color : "transparent";
+
+  el.className = "order-slot";
+  el.innerHTML = `
+    <div class="seq">${seqHTML}</div>
+    <div class="glass-wrap">
+      <div class="glass-fill" style="--fill-color:${fillColor}; --fill-pct:${fillPct}%"></div>
+      <div class="glass-outline"></div>
+    </div>
+    <div class="patience-wrap">
+      <div class="patience-bar" style="width:${pct}%; background:${barColor}"></div>
+    </div>`;
+}
+
+function renderAllSlots() {
+  for (let i = 0; i < 3; i++) renderSlot(i);
+}
+
+/* ── PEDIDOS ── */
+function makeOrder() {
+  if (orders.length >= 3) return;
+  const len = Math.min(4, 2 + Math.floor(speed * 0.6));
+  const seq = Array.from({length:len}, () => INGR[Math.floor(Math.random()*INGR.length)]);
+  const slot = [0,1,2].find(s => !orders.some(o => o.slot===s));
+  if (slot === undefined) return;
+  orders.push({ id: orderId++, seq, progress:0, timer:0,
+    patience: Math.max(500, 850 - time*0.05) / speed,
+    anger:0, slot });
+  renderSlot(slot);
+}
+
+function removeOrder(id) {
+  const o = orders.find(o=>o.id===id);
+  if (!o) return;
+  const slot = o.slot;
+  orders = orders.filter(o=>o.id!==id);
+  renderSlot(slot);
+}
+
+/* ── PRESS INGREDIENTE ── */
+function pressIngredient(idx) {
+  if (!gameRunning) return;
+  const ingr = INGR[idx];
+
+  for (let ord of orders) {
+    if (ord.seq[ord.progress]?.emoji === ingr.emoji) {
+      ord.progress++;
+      if (ord.progress >= ord.seq.length) {
+        // ¡Trago completo!
+        const pts = 30 + Math.floor((1-ord.anger)*40);
+        score += pts; scoreEl.textContent = score;
+        const slotEl = document.getElementById(`slot-${ord.slot}`);
+        slotEl.classList.add("shake");
+        spawnFloat(`🍸 +${pts}`, "#ffe600", slotEl);
+        setTimeout(() => removeOrder(ord.id), 500);
+      } else {
+        renderSlot(ord.slot);
+      }
+      return;
+    }
+  }
+
+  // Incorrecto → -1 vida, resetear progreso
+  if (orders.length > 0) {
+    lives--; updateLives();
+    orders.forEach(o => { o.progress = 0; });
+    renderAllSlots();
+    // Flash rojo en todos los slots activos
+    orders.forEach(o => {
+      const el = document.getElementById(`slot-${o.slot}`);
+      el.classList.remove("error");
+      void el.offsetWidth; // reflow
+      el.classList.add("error");
+    });
+    spawnFloat("❌ ¡Incorrecto! -1 vida", "#ff3d57", null);
+    if (lives <= 0) endGame();
+  }
+}
+
+/* ── GAME LOOP (setInterval, no canvas) ── */
+function gameTick() {
+  if (!gameRunning) return;
+  time++;
+
+  if (time % 600 === 0) speed = Math.min(2.5, speed+0.15);
+
+  // Spawn
+  const interval = Math.max(220, 400 - time*0.07);
+  if (orders.length < 3 && time % interval === 0) makeOrder();
+  if (orders.length === 0 && time > 80) makeOrder();
+
+  // Paciencia
+  for (let i = orders.length-1; i>=0; i--) {
+    const o = orders[i];
+    o.timer++; o.anger = Math.min(1, o.timer/o.patience);
+    if (o.timer >= o.patience) {
+      const slotEl = document.getElementById(`slot-${o.slot}`);
+      spawnFloat("😤 ¡Me voy!", "#ff3d57", slotEl);
+      removeOrder(o.id);
+      lives--; updateLives();
+      if (lives <= 0) { endGame(); return; }
+    } else {
+      // Actualizar barra de paciencia sin re-render completo
+      const el = document.getElementById(`slot-${o.slot}`);
+      if (!el) continue;
+      const bar = el.querySelector(".patience-bar");
+      if (bar) {
+        const pct = Math.max(0,(1-o.anger)*100);
+        const hue = Math.floor(pct*1.2);
+        bar.style.width = pct+"%";
+        bar.style.background = `hsl(${hue},85%,52%)`;
+      }
+    }
+  }
+}
+
+/* ── CONTROL ── */
+function startGame() {
+  startScreen.style.display = "none";
+  gameRunning = true;
+  makeOrder();
+  ticker = setInterval(gameTick, 16);
+}
+
+function endGame() {
+  gameRunning = false;
+  clearInterval(ticker);
+  finalEl.textContent   = score;
+  bestFinEl.textContent = bestScore;
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem("bartender_v3", bestScore);
+    bestEl.textContent     = bestScore;
+    newRecEl.style.display = "block";
+  } else {
+    newRecEl.style.display = "none";
+  }
+  setTimeout(() => { goScreen.style.display = "flex"; }, 400);
+}
+
+function restart() {
+  orders = []; score = 0; lives = 3; time = 0; speed = 1;
+  scoreEl.textContent = "0";
+  updateLives(); renderAllSlots();
+  goScreen.style.display = "none";
+  gameRunning = true;
+  makeOrder();
+  clearInterval(ticker);
+  ticker = setInterval(gameTick, 16);
+}
+
+updateLives();
+renderAllSlots();
+</script>
+</body>
+</html>

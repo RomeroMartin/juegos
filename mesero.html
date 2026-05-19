@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>¡Mesero Veloz! 🍽️</title>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --wood:    #5c3317;
+      --wood2:   #7a4828;
+      --mantel:  #c0392b;
+      --mantel2: #e74c3c;
+      --cream:   #fdf6e3;
+      --gold:    #f0c040;
+      --green:   #27ae60;
+      --accent:  #ff6b35;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--wood);
+      font-family: 'Quicksand', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* Textura de madera en el fondo */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        92deg,
+        transparent,
+        transparent 38px,
+        rgba(0,0,0,0.04) 38px,
+        rgba(0,0,0,0.04) 40px
+      ),
+      repeating-linear-gradient(
+        180deg,
+        transparent,
+        transparent 120px,
+        rgba(255,255,255,0.02) 120px,
+        rgba(255,255,255,0.02) 122px
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    h1 {
+      font-family: 'Permanent Marker', cursive;
+      font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+      color: var(--cream);
+      margin: 6px 0 4px;
+      text-shadow: 2px 3px 0 rgba(0,0,0,0.4);
+      z-index: 1;
+      position: relative;
+    }
+
+    #hud {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 5px;
+      z-index: 1;
+      position: relative;
+    }
+
+    .hud-pill {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 20px;
+      padding: 4px 16px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--cream);
+    }
+
+    .hud-pill span { color: var(--gold); }
+
+    #lives-hud { font-size: 1.1rem; letter-spacing: 2px; }
+
+    canvas {
+      display: block;
+      border-radius: 14px;
+      border: 3px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      max-width: 98vw;
+      max-height: calc(100vh - 110px);
+      z-index: 1;
+      position: relative;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      backdrop-filter: blur(6px);
+    }
+
+    .panel {
+      background: linear-gradient(145deg, #3d1f0a, #5c3317);
+      border: 2px solid rgba(240,192,64,0.35);
+      border-radius: 22px;
+      padding: 28px 36px;
+      color: var(--cream);
+      max-width: 370px;
+      width: 92%;
+      box-shadow: 0 0 60px rgba(240,192,64,0.1);
+      text-align: center;
+    }
+
+    .panel h2 {
+      font-family: 'Permanent Marker', cursive;
+      font-size: 2rem;
+      color: var(--gold);
+      margin-bottom: 10px;
+      text-shadow: 1px 2px 0 rgba(0,0,0,0.4);
+    }
+
+    .panel p {
+      font-size: 0.95rem;
+      color: rgba(253,246,227,0.82);
+      line-height: 1.65;
+      margin-bottom: 6px;
+    }
+
+    .big-score {
+      font-family: 'Permanent Marker', cursive;
+      font-size: 3.2rem;
+      color: var(--gold);
+      margin: 6px 0;
+    }
+
+    .record-badge {
+      background: linear-gradient(90deg, var(--gold), var(--accent));
+      color: #1a0800;
+      font-weight: 700;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      display: none;
+      margin: 6px auto;
+      width: fit-content;
+    }
+
+    .instr { text-align: left; margin: 10px 0; }
+    .instr li {
+      font-size: 0.9rem;
+      color: rgba(253,246,227,0.85);
+      margin-bottom: 7px;
+      list-style: none;
+    }
+
+    .btn {
+      margin-top: 16px;
+      padding: 13px 32px;
+      font-family: 'Permanent Marker', cursive;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, var(--accent), #e74c3c);
+      color: white;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 20px rgba(255,107,53,0.4);
+      transition: transform 0.1s;
+      width: 100%;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      font-family: 'Nunito', 'Arial', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-decoration: none;
+      backdrop-filter: blur(6px);
+      transition: background 0.15s;
+    }
+    #back-btn:hover { background: rgba(0,0,0,0.8); }
+  </style>
+</head>
+<body>
+  <a id="back-btn" href="juegos.html">← Menú</a>
+
+  <h1>¡Mesero Veloz! 🍽️🏃</h1>
+  <div id="hud">
+    <div class="hud-pill">Puntaje: <span id="score">0</span></div>
+    <div class="hud-pill" id="lives-hud">❤️❤️❤️</div>
+    <div class="hud-pill">Récord: <span id="best">0</span></div>
+  </div>
+
+  <canvas id="game" width="780" height="500"></canvas>
+
+  <!-- Inicio -->
+  <div class="overlay" id="startScreen">
+    <div class="panel">
+      <h2>¡Mesero Veloz!</h2>
+      <p>Los clientes piden comida y vos tenés que servirla a tiempo.</p>
+      <ul class="instr">
+        <li>1️⃣ <strong>Click en la mesa</strong> que tiene un pedido (💬)</li>
+        <li>2️⃣ <strong>Click en el plato</strong> correcto del mostrador</li>
+        <li>3️⃣ <strong>Click en la mesa</strong> de nuevo para entregar</li>
+        <li>⏳ Si el cliente espera demasiado, se va y perdés ❤️</li>
+        <li>⚡ ¡La velocidad aumenta con el tiempo!</li>
+      </ul>
+      <button class="btn" onclick="startGame()">¡A servir! 🍽️</button>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div class="overlay" id="gameOverScreen" style="display:none;">
+    <div class="panel">
+      <h2>¡Se fue el último cliente!</h2>
+      <div class="big-score" id="finalScore">0</div>
+      <p>puntos</p>
+      <div class="record-badge" id="newRecord">🏆 ¡NUEVO RÉCORD!</div>
+      <p style="margin-top:8px;color:rgba(253,246,227,0.45);font-size:0.82rem;">Récord: <span id="bestFinal">0</span></p>
+      <button class="btn" onclick="restart()">Volver a trabajar 🔄</button>
+      <a href="juegos.html" style="display:block;margin-top:10px;text-align:center;color:rgba(255,255,255,0.45);font-size:0.82rem;text-decoration:none;letter-spacing:1px;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">← Volver al menú de juegos</a>
+
+    </div>
+  </div>
+
+  <script>
+  const canvas  = document.getElementById("game");
+  const ctx     = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const bestEl  = document.getElementById("best");
+  const livesEl = document.getElementById("lives-hud");
+  const goScreen    = document.getElementById("gameOverScreen");
+  const startScreen = document.getElementById("startScreen");
+  const finalEl     = document.getElementById("finalScore");
+  const newRecEl    = document.getElementById("newRecord");
+  const bestFinEl   = document.getElementById("bestFinal");
+
+  /* ── ESTADO ── */
+  let score     = 0;
+  let lives     = 3;
+  let gameRunning = false;
+  let time      = 0;
+  let speed     = 1;          // multiplicador de dificultad
+  let bestScore = parseInt(localStorage.getItem("mesero_best") || "0");
+  bestEl.textContent = bestScore;
+
+  /* ── MENÚ (exactamente los platos que aparecen en el mostrador) ── */
+  const MENU = [
+    { emoji:"🍔", name:"Hamburguesa" },
+    { emoji:"🍕", name:"Pizza"       },
+    { emoji:"🥩", name:"Bife"        },
+    { emoji:"🍝", name:"Pasta"       },
+  ];
+
+  /* ── MESAS (posición fija en el canvas) ── */
+  const TABLE_DEFS = [
+    { id:0, x: 95,  y: 90  },
+    { id:1, x: 340, y: 90  },
+    { id:2, x: 585, y: 90  },
+    { id:3, x: 95,  y: 300 },
+    { id:4, x: 340, y: 300 },
+    { id:5, x: 585, y: 300 },
+  ];
+  const TABLE_R = 52;   // radio mesa
+
+  /* ── MOSTRADOR (parte inferior) ── */
+  const COUNTER_Y   = 438;
+  const COUNTER_H   = 55;
+  const DISH_SLOTS  = 4;     // platos visibles a la vez
+
+  /* ── MESERO ── */
+  const waiter = {
+    x: 390, y: 430,
+    tx: 390, ty: 430,
+    speed: 4.5,
+    carrying: null,   // { tableId, dish } o null
+    state: "idle",    // idle | moving | delivering
+  };
+
+  /* ── TABLES runtime ── */
+  let tables = [];
+  let counterDishes = [];   // platos en el mostrador
+  let floatingTexts = [];
+  let particles     = [];
+
+  /* ────────────────────────────────── INIT ── */
+  function initTables() {
+    tables = TABLE_DEFS.map(t => ({
+      ...t,
+      state:    "empty",   // empty | waiting | ordered | ready_to_deliver
+      order:    null,      // { dish }
+      timer:    0,
+      patience: 0,
+      anger:    0,         // 0-1
+    }));
+  }
+
+  function initCounter() {
+    // El mostrador muestra exactamente los 4 platos del menú, siempre fijos
+    counterDishes = [...MENU];
+  }
+
+  function randomDish() {
+    // Las mesas solo piden platos que están en el mostrador
+    return MENU[Math.floor(Math.random() * MENU.length)];
+  }
+
+  /* ────────────────────────────────── HELPERS ── */
+  function updateLives() {
+    livesEl.textContent = "❤️".repeat(lives) + "🖤".repeat(Math.max(0, 3 - lives));
+  }
+
+  function spawnFloat(x, y, text, color) {
+    floatingTexts.push({ x, y, text, color, life: 1, vy: -1.6 });
+  }
+
+  function spawnParticles(x, y) {
+    const colors = ["#ffd700","#ff6b35","#00e676","#fff"];
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd   = 2 + Math.random() * 3;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1,
+        size: 4 + Math.random() * 4
+      });
+    }
+  }
+
+  /* ────────────────────────────────── CLICK / TAP ── */
+  function handleClick(cx, cy) {
+    if (!gameRunning) return;
+
+    const rect  = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    const mx    = (cx - rect.left)  * scale;
+    const my    = (cy - rect.top)   * scale;
+
+    // ¿Click en una mesa?
+    for (let t of tables) {
+      const dx = mx - t.x, dy = my - t.y;
+      if (dx*dx + dy*dy < (TABLE_R + 10) * (TABLE_R + 10)) {
+        handleTableClick(t);
+        return;
+      }
+    }
+
+    // ¿Click en un plato del mostrador?
+    if (my > COUNTER_Y - 10) {
+      const slotW = canvas.width / DISH_SLOTS;
+      const idx   = Math.floor(mx / slotW);
+      if (idx >= 0 && idx < DISH_SLOTS) {
+        handleDishClick(idx);
+      }
+    }
+  }
+
+  function handleTableClick(t) {
+    // Si llevamos un plato y la mesa lo espera → entregar
+    if (waiter.carrying && waiter.carrying.tableId === t.id && t.state === "ordered") {
+      waiter.tx = t.x;
+      waiter.ty = t.y;
+      waiter.state = "delivering";
+      waiter.targetTable = t.id;
+      return;
+    }
+    // Si la mesa tiene pedido y no llevamos nada → registrar pedido (ya fue tomado automáticamente)
+    // Solo feedback visual
+    if (t.state === "waiting") {
+      // El pedido se toma automáticamente, acá solo guiamos
+      spawnFloat(t.x, t.y - 60, "¡Anotado!", "#ffd700");
+    }
+  }
+
+  function handleDishClick(idx) {
+    if (!waiter.carrying) return;   // necesitás haber "tomado" un pedido primero — ver flujo abajo
+    // No hace nada extra, ya se maneja en el flujo de estados
+  }
+
+  /* ── Nuevo flujo simplificado:
+     1. Mesa aparece con pedido (globito con emoji)
+     2. Click en la mesa → mesero va hacia ella y "toma el pedido" (carrying = { tableId, dish })
+     3. El mostrador muestra platos; click en el plato correcto → mesero va al mostrador
+     4. Al llegar al mostrador con el plato correcto → carrying se actualiza a "listo"
+     5. Click en la mesa → entrega, puntos
+  ── */
+
+  // Re-defino handleClick con flujo completo
+  function handleClick2(cx, cy) {
+    if (!gameRunning) return;
+    const rect  = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    const mx    = (cx - rect.left)  * scale;
+    const my    = (cy - rect.top)   * scale;
+
+    // ── A. Click en mesa ──
+    for (let t of tables) {
+      const dx = mx - t.x, dy = my - t.y;
+      if (dx*dx + dy*dy < (TABLE_R + 14) * (TABLE_R + 14)) {
+
+        // Caso 1: mesa con pedido, mesero libre → ir a tomar pedido
+        if (t.state === "waiting" && !waiter.carrying) {
+          waiter.tx    = t.x;
+          waiter.ty    = t.y;
+          waiter.state = "going_to_take";
+          waiter.targetTableId = t.id;
+          return;
+        }
+
+        // Caso 2: mesero tiene plato listo y es la mesa correcta → ir a entregar
+        if (waiter.carrying && waiter.carrying.ready && waiter.carrying.tableId === t.id) {
+          waiter.tx    = t.x;
+          waiter.ty    = t.y;
+          waiter.state = "going_to_deliver";
+          waiter.targetTableId = t.id;
+          return;
+        }
+        return;
+      }
+    }
+
+    // ── B. Click en plato del mostrador ──
+    if (my > COUNTER_Y - 10 && waiter.carrying && !waiter.carrying.ready) {
+      const slotW = canvas.width / DISH_SLOTS;
+      const idx   = Math.floor(mx / slotW);
+      if (idx >= 0 && idx < DISH_SLOTS) {
+        const dish = counterDishes[idx];
+        const need = waiter.carrying.dish;
+        if (dish.emoji === need.emoji) {
+          // ¡Correcto!
+          const sx = slotW * idx + slotW / 2;
+          waiter.tx = sx;
+          waiter.ty = COUNTER_Y;
+          waiter.state = "going_to_counter";
+          waiter.correctSlot = idx;
+        } else {
+          // Plato incorrecto — feedback
+          spawnFloat(mx, COUNTER_Y - 20, "❌ ¡No es ese!", "#ff4757");
+        }
+      }
+    }
+  }
+
+  canvas.addEventListener("mousedown",  e => handleClick2(e.clientX, e.clientY));
+  canvas.addEventListener("touchstart", e => { e.preventDefault(); handleClick2(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+
+  /* ────────────────────────────────── UPDATE ── */
+  function update() {
+    if (!gameRunning) return;
+    time++;
+
+    // Dificultad progresiva
+    if (time % 600 === 0) speed = Math.min(2.2, speed + 0.12);
+
+    // Spawn de clientes
+    const emptyTables = tables.filter(t => t.state === "empty");
+    // Más mesas llenas con el tiempo
+    const maxActive   = Math.min(6, 2 + Math.floor(speed * 1.5));
+    const activeTables= tables.filter(t => t.state !== "empty").length;
+
+    if (activeTables < maxActive && time % Math.max(90, 200 - time * 0.1 | 0) === 0 && emptyTables.length) {
+      const t       = emptyTables[Math.floor(Math.random() * emptyTables.length)];
+      t.state       = "waiting";
+      t.order       = { dish: randomDish() };
+      t.patience    = Math.max(700, 1200 - time * 0.12) / speed;
+      t.timer       = 0;
+      t.anger       = 0;
+    }
+
+    // Mesas: countdown de paciencia
+    for (let t of tables) {
+      if (t.state === "waiting" || t.state === "ordered") {
+        t.timer++;
+        t.anger = Math.min(1, t.timer / t.patience);
+
+        if (t.timer >= t.patience) {
+          // Se fue el cliente
+          spawnFloat(t.x, t.y - 55, "😤 ¡Me voy!", "#ff4757");
+          t.state = "empty"; t.order = null; t.timer = 0; t.anger = 0;
+          // Si el mesero iba a esa mesa, lo cancelamos
+          if (waiter.targetTableId === t.id) {
+            waiter.state    = "idle";
+            waiter.carrying = null;
+            waiter.targetTableId = null;
+          }
+          lives--;
+          updateLives();
+          if (lives <= 0) endGame();
+        }
+      }
+    }
+
+    // Mover mesero
+    const dx  = waiter.tx - waiter.x;
+    const dy  = waiter.ty - waiter.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const spd  = waiter.speed * (1 + speed * 0.3);
+
+    if (dist > spd) {
+      waiter.x += (dx / dist) * spd;
+      waiter.y += (dy / dist) * spd;
+    } else {
+      waiter.x = waiter.tx;
+      waiter.y = waiter.ty;
+
+      // ── Llegó a destino ──
+      if (waiter.state === "going_to_take") {
+        const t = tables.find(t => t.id === waiter.targetTableId);
+        if (t && t.state === "waiting") {
+          t.state      = "ordered";
+          waiter.carrying = { tableId: t.id, dish: t.order.dish, ready: false };
+          spawnFloat(t.x, t.y - 60, `Pedido: ${t.order.dish.emoji}`, "#ffd700");
+        }
+        waiter.state = "idle";
+      }
+
+      else if (waiter.state === "going_to_counter") {
+        // Tomó el plato correcto
+        waiter.carrying.ready = true;
+        const slotW = canvas.width / DISH_SLOTS;
+        spawnParticles(slotW * waiter.correctSlot + slotW / 2, COUNTER_Y);
+        spawnFloat(waiter.x, waiter.y - 30, "¡A entregar!", "#00e676");
+        // El mostrador siempre muestra los mismos platos fijos — no reponer
+        waiter.state = "idle";
+      }
+
+      else if (waiter.state === "going_to_deliver") {
+        const t = tables.find(t => t.id === waiter.targetTableId);
+        if (t && t.state === "ordered" && waiter.carrying && waiter.carrying.ready) {
+          const bonus  = Math.max(0, Math.floor((1 - t.anger) * 50));
+          const pts    = 30 + bonus;
+          score       += pts;
+          scoreEl.textContent = score;
+          spawnParticles(t.x, t.y);
+          spawnFloat(t.x, t.y - 65, `+${pts} 😊`, "#00e676");
+          t.state   = "empty"; t.order = null; t.timer = 0; t.anger = 0;
+          waiter.carrying = null;
+        }
+        waiter.state = "idle";
+        waiter.targetTableId = null;
+      }
+    }
+
+    // Partículas
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.18;
+      p.life -= 0.04;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // Textos flotantes
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+      const f = floatingTexts[i];
+      f.y += f.vy; f.life -= 0.025;
+      if (f.life <= 0) floatingTexts.splice(i, 1);
+    }
+  }
+
+  /* ────────────────────────────────── DRAW ── */
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // ── Piso del salón ──
+    ctx.fillStyle = "#6b3f1f";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Tablones de madera
+    ctx.strokeStyle = "rgba(0,0,0,0.12)";
+    ctx.lineWidth = 1.5;
+    for (let y = 0; y < canvas.height; y += 28) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    }
+
+    // ── Mostrador (franja inferior) ──
+    ctx.fillStyle = "#5c3010";
+    ctx.fillRect(0, COUNTER_Y - 8, canvas.width, COUNTER_H + 8);
+    ctx.fillStyle = "#3d1f08";
+    ctx.fillRect(0, COUNTER_Y - 8, canvas.width, 6);
+
+    // Etiqueta mostrador
+    ctx.font = "bold 11px 'Quicksand', sans-serif";
+    ctx.fillStyle = "rgba(253,246,227,0.5)";
+    ctx.textAlign = "left";
+    ctx.fillText("MOSTRADOR", 10, COUNTER_Y + 8);
+
+    // Platos en el mostrador
+    const slotW = canvas.width / DISH_SLOTS;
+    for (let i = 0; i < DISH_SLOTS; i++) {
+      const sx = slotW * i + slotW / 2;
+      const sy = COUNTER_Y + 32;
+
+      // Fondo de slot (claro para que el emoji resalte)
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.beginPath();
+      ctx.roundRect(slotW * i + 12, COUNTER_Y + 4, slotW - 24, COUNTER_H - 8, 10);
+      ctx.fill();
+
+      // Resaltado si el mesero lleva un pedido
+      if (waiter.carrying && !waiter.carrying.ready) {
+        const need = waiter.carrying.dish;
+        if (counterDishes[i].emoji === need.emoji) {
+          ctx.fillStyle = `rgba(0,230,118,${0.25 + 0.15 * Math.sin(time * 0.12)})`;
+          ctx.beginPath();
+          ctx.roundRect(slotW * i + 8, COUNTER_Y + 2, slotW - 16, COUNTER_H - 4, 10);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(0,230,118,${0.7 + 0.3 * Math.sin(time * 0.12)})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.roundRect(slotW * i + 8, COUNTER_Y + 2, slotW - 16, COUNTER_H - 4, 10);
+          ctx.stroke();
+        }
+      }
+
+      // Nombre del plato
+      ctx.font = "bold 10px 'Quicksand'";
+      ctx.fillStyle = "rgba(253,246,227,0.6)";
+      ctx.textAlign = "center";
+      ctx.fillText(counterDishes[i].name, sx, COUNTER_Y + 16);
+
+      // Emoji del plato (grande y nítido)
+      ctx.font = "36px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(counterDishes[i].emoji, sx, sy);
+    }
+
+    // ── Mesas ──
+    for (let t of tables) {
+      ctx.save();
+      ctx.translate(t.x, t.y);
+
+      // Sombra mesa
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.beginPath();
+      ctx.ellipse(3, 6, TABLE_R, TABLE_R * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Mesa (círculo con mantel a cuadros)
+      ctx.fillStyle = "#b22222";
+      ctx.beginPath();
+      ctx.arc(0, 0, TABLE_R, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Patrón cuadros
+      ctx.save();
+      ctx.clip(); // solo dentro del círculo
+      ctx.beginPath(); ctx.arc(0, 0, TABLE_R, 0, Math.PI * 2);
+      const sq = 14;
+      for (let xi = -TABLE_R; xi < TABLE_R; xi += sq) {
+        for (let yi = -TABLE_R; yi < TABLE_R; yi += sq) {
+          if ((Math.floor(xi / sq) + Math.floor(yi / sq)) % 2 === 0) {
+            ctx.fillStyle = "rgba(0,0,0,0.12)";
+            ctx.fillRect(xi, yi, sq, sq);
+          }
+        }
+      }
+      ctx.restore();
+
+      // Borde mesa
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, TABLE_R, 0, Math.PI * 2); ctx.stroke();
+
+      // Número mesa
+      ctx.font = "bold 12px 'Quicksand'";
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.textAlign = "center";
+      ctx.fillText(`Mesa ${t.id + 1}`, 0, TABLE_R - 8);
+
+      // ── Estado de la mesa ──
+      if (t.state === "waiting") {
+        // Burbuja de pedido
+        const bx = TABLE_R - 5, by = -TABLE_R + 5;
+
+        // Anger ring
+        ctx.strokeStyle = `hsl(${120 - t.anger * 120}, 90%, 55%)`;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, 0, TABLE_R + 5, -Math.PI / 2, -Math.PI / 2 + (1 - t.anger) * Math.PI * 2);
+        ctx.stroke();
+
+        // Globito pedido
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.roundRect(bx - 30, by - 30, 52, 38, 8);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(bx - 8, by + 8); ctx.lineTo(bx - 16, by + 18); ctx.lineTo(bx - 2, by + 8);
+        ctx.fill();
+
+        ctx.font = "22px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(t.order.dish.emoji, bx - 4, by - 4);
+
+      } else if (t.state === "ordered") {
+        // Anillo de espera (gris, esperando al mesero con el plato)
+        ctx.strokeStyle = "rgba(255,220,100,0.5)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath(); ctx.arc(0, 0, TABLE_R + 5, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Si el mesero ya tiene el plato listo para esta mesa, mostrar ✅
+        if (waiter.carrying && waiter.carrying.ready && waiter.carrying.tableId === t.id) {
+          ctx.font = "22px Arial";
+          ctx.textAlign = "center";
+          ctx.fillText("✅", TABLE_R - 4, -TABLE_R + 12);
+        } else {
+          ctx.font = "18px Arial";
+          ctx.fillText("⏳", TABLE_R - 4, -TABLE_R + 12);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // ── Mesero ──
+    ctx.save();
+    ctx.translate(waiter.x, waiter.y);
+
+    // Sombra
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(2, 12, 16, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = "40px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("🧑‍🍳", 0, 0);
+
+    // Plato que lleva
+    if (waiter.carrying) {
+      ctx.font = "20px Arial";
+      const pulse = waiter.carrying.ready ? (0.9 + 0.1 * Math.sin(time * 0.2)) : 1;
+      ctx.scale(pulse, pulse);
+      ctx.fillText(waiter.carrying.dish.emoji, 18, -20);
+    }
+    ctx.restore();
+
+    // ── Partículas ──
+    for (let p of particles) {
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle   = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Textos flotantes ──
+    for (let f of floatingTexts) {
+      ctx.globalAlpha = f.life;
+      ctx.font        = "bold 15px 'Quicksand', sans-serif";
+      ctx.fillStyle   = f.color;
+      ctx.textAlign   = "center";
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Instrucción contextual ──
+    let hint = "";
+    if (waiter.state === "idle" && !waiter.carrying) {
+      const hasPending = tables.some(t => t.state === "waiting");
+      if (hasPending) hint = "👆 Click en la mesa con el globito";
+    } else if (waiter.carrying && !waiter.carrying.ready) {
+      hint = `👆 Buscá el ${waiter.carrying.dish.emoji} en el mostrador`;
+    } else if (waiter.carrying && waiter.carrying.ready) {
+      hint = "👆 Click en la mesa para entregar";
+    }
+
+    if (hint) {
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle   = "#fff";
+      ctx.font        = "bold 13px 'Quicksand'";
+      ctx.textAlign   = "center";
+      ctx.fillText(hint, canvas.width / 2, canvas.height - 8);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /* ────────────────────────────────── GAME LOOP ── */
+  function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame() {
+    gameRunning = false;
+    finalEl.textContent  = score;
+    bestFinEl.textContent = bestScore;
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem("mesero_best", bestScore);
+      bestEl.textContent   = bestScore;
+      newRecEl.style.display = "block";
+    } else {
+      newRecEl.style.display = "none";
+    }
+    setTimeout(() => { goScreen.style.display = "flex"; }, 400);
+  }
+
+  function startGame() {
+    startScreen.style.display = "none";
+    gameRunning = true;
+  }
+
+  function restart() {
+    score = 0; lives = 3; time = 0; speed = 1;
+    scoreEl.textContent = "0";
+    waiter.x = 390; waiter.y = 430;
+    waiter.tx = 390; waiter.ty = 430;
+    waiter.carrying = null; waiter.state = "idle"; waiter.targetTableId = null;
+    floatingTexts.length = 0; particles.length = 0;
+    initTables(); initCounter();
+    updateLives();
+    goScreen.style.display = "none";
+    gameRunning = true;
+  }
+
+  /* ── BOOT ── */
+  initTables();
+  initCounter();
+  updateLives();
+  gameLoop();
+  </script>
+</body>
+</html>

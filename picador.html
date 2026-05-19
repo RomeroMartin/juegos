@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>¡Chef Picador! 🔪</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --tile-light: #f0ede6;
+      --tile-dark:  #d4cfc6;
+      --steel:      #b0bec5;
+      --counter:    #e8dcc8;
+      --wood:       #8b5e3c;
+      --red:        #e53935;
+      --green:      #43a047;
+      --gold:       #f9a825;
+      --ink:        #1a1a1a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #1a1a1a;
+      touch-action: none;
+      user-select: none;
+      cursor: none;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', cursive;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      color: #fff;
+      margin: 7px 0 4px;
+      letter-spacing: 3px;
+      text-shadow: 2px 2px 0 var(--red);
+      position: relative; z-index: 1;
+    }
+
+    #hud {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 5px;
+      position: relative; z-index: 1;
+    }
+
+    .hud-pill {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 20px;
+      padding: 4px 16px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .hud-pill span { color: var(--gold); }
+    #lives-hud { font-size: 1.05rem; letter-spacing: 2px; }
+
+    canvas {
+      display: block;
+      border-radius: 12px;
+      border: 3px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+      max-width: 98vw;
+      max-height: calc(100vh - 112px);
+      position: relative; z-index: 1;
+      touch-action: none;
+    }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.86);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50;
+      backdrop-filter: blur(6px);
+    }
+
+    .panel {
+      background: linear-gradient(145deg, #222, #111);
+      border: 2px solid rgba(229,57,53,0.4);
+      border-radius: 22px;
+      padding: 28px 36px;
+      color: #fff;
+      max-width: 370px; width: 92%;
+      box-shadow: 0 0 60px rgba(229,57,53,0.12);
+      text-align: center;
+    }
+
+    .panel h2 {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 2.2rem;
+      color: var(--red);
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+    }
+
+    .panel p {
+      font-size: 0.92rem;
+      color: rgba(255,255,255,0.78);
+      line-height: 1.65;
+      margin-bottom: 6px;
+    }
+
+    .big-score {
+      font-family: 'Bebas Neue', cursive;
+      font-size: 3.5rem;
+      color: var(--gold);
+      letter-spacing: 4px;
+      margin: 6px 0;
+    }
+
+    .record-badge {
+      background: linear-gradient(90deg, var(--gold), #ff8f00);
+      color: #111;
+      font-weight: 900;
+      padding: 5px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      display: none;
+      margin: 6px auto;
+      width: fit-content;
+    }
+
+    .instr { text-align: left; margin: 10px 0; }
+    .instr li {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.82);
+      margin-bottom: 7px;
+      list-style: none;
+    }
+
+    .btn {
+      margin-top: 16px;
+      padding: 13px 32px;
+      font-family: 'Bebas Neue', cursive;
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(135deg, var(--red), #b71c1c);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(229,57,53,0.4);
+      transition: transform 0.1s;
+      width: 100%;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); }
+
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 999;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      font-family: 'Nunito', 'Arial', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 20px;
+      text-decoration: none;
+      backdrop-filter: blur(6px);
+      transition: background 0.15s;
+    }
+    #back-btn:hover { background: rgba(0,0,0,0.8); }
+  </style>
+</head>
+<body>
+  <a id="back-btn" href="juegos.html">← Menú</a>
+
+  <h1>🔪 CHEF PICADOR</h1>
+  <div id="hud">
+    <div class="hud-pill">Puntaje: <span id="score">0</span></div>
+    <div class="hud-pill" id="lives-hud">❤️❤️❤️</div>
+    <div class="hud-pill">Récord: <span id="best">0</span></div>
+  </div>
+
+  <canvas id="game" width="780" height="480"></canvas>
+
+  <!-- Inicio -->
+  <div class="overlay" id="startScreen">
+    <div class="panel">
+      <h2>CHEF PICADOR 🔪</h2>
+      <p>¡Los ingredientes vienen en cinta! Picá los buenos antes de que se escapen.</p>
+      <ul class="instr">
+        <li>🖱️ <strong>Click / Tap</strong> sobre el ingrediente para picarlo</li>
+        <li>✅ Ingredientes buenos → puntos</li>
+        <li>☠️ <strong>Veneno / Basura</strong> → ¡no los toques! Perdés ❤️</li>
+        <li>💨 Si un ingrediente bueno escapa por la derecha → perdés ❤️</li>
+        <li>⚡ La cinta se acelera con el tiempo</li>
+      </ul>
+      <button class="btn" onclick="startGame()">¡A picar! 🔪</button>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div class="overlay" id="gameOverScreen" style="display:none;">
+    <div class="panel">
+      <h2>¡SE ACABÓ!</h2>
+      <div class="big-score" id="finalScore">0</div>
+      <p>puntos</p>
+      <div class="record-badge" id="newRecord">🏆 ¡NUEVO RÉCORD!</div>
+      <p style="margin-top:8px;color:rgba(255,255,255,0.4);font-size:0.82rem;">Récord: <span id="bestFinal">0</span></p>
+      <button class="btn" onclick="restart()">Otra vez 🔄</button>
+      <a href="juegos.html" style="display:block;margin-top:10px;text-align:center;color:rgba(255,255,255,0.45);font-size:0.82rem;text-decoration:none;letter-spacing:1px;" onmouseover="this.style.color='white'" onmouseout="this.style.color='rgba(255,255,255,0.45)'">← Volver al menú de juegos</a>
+
+    </div>
+  </div>
+
+  <script>
+  const canvas  = document.getElementById("game");
+  const ctx     = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const bestEl  = document.getElementById("best");
+  const livesEl = document.getElementById("lives-hud");
+  const goScreen    = document.getElementById("gameOverScreen");
+  const startScreen = document.getElementById("startScreen");
+  const finalEl  = document.getElementById("finalScore");
+  const newRecEl = document.getElementById("newRecord");
+  const bestFinEl= document.getElementById("bestFinal");
+
+  let score      = 0;
+  let lives      = 3;
+  let gameRunning= false;
+  let time       = 0;
+  let beltSpeed  = 2.2;
+  let spawnRate  = 110;
+  let bestScore  = parseInt(localStorage.getItem("picador_best") || "0");
+  bestEl.textContent = bestScore;
+
+  /* ── Cursor cuchillo ── */
+  let mouseX = 400, mouseY = 200;
+  let knifeAngle  = 0;   // rotación al cortar
+  let knifeAnim   = 0;   // 0=quieto, >0 animando corte
+
+  canvas.addEventListener("mousemove", e => {
+    const r = canvas.getBoundingClientRect();
+    const s = canvas.width / r.width;
+    mouseX = (e.clientX - r.left) * s;
+    mouseY = (e.clientY - r.top)  * s;
+  });
+
+  /* ── Ingredientes ── */
+  const GOOD = [
+    { emoji:"🧅", name:"Cebolla",  pts: 10 },
+    { emoji:"🥕", name:"Zanahoria",pts: 15 },
+    { emoji:"🍅", name:"Tomate",   pts: 10 },
+    { emoji:"🧄", name:"Ajo",      pts: 20 },
+    { emoji:"🫑", name:"Morrón",   pts: 15 },
+    { emoji:"🥦", name:"Brócoli",  pts: 20 },
+    { emoji:"🍋", name:"Limón",    pts: 10 },
+    { emoji:"🧁", name:"Bonus",    pts: 50 },  // especial
+  ];
+
+  const BAD = [
+    { emoji:"🧪", name:"Veneno",   penalty: true  },
+    { emoji:"🗑️", name:"Basura",   penalty: true  },
+    { emoji:"🐛", name:"Bicho",    penalty: true  },
+  ];
+
+  /* ── Estado ── */
+  let items       = [];
+  let particles   = [];
+  let floats      = [];
+  let slashLines  = [];   // efecto corte
+
+  /* ── SPAWN ── */
+  const LANE_COUNT = 3;
+  const LANE_H     = 100;
+  const LANE_Y0    = 130;  // y del primer carril (centro)
+
+  function laneY(lane) { return LANE_Y0 + lane * LANE_H; }
+
+  function spawnItem() {
+    const lane    = Math.floor(Math.random() * LANE_COUNT);
+    const isBad   = Math.random() < 0.22 + Math.min(0.2, time * 0.00015);
+    const pool    = isBad ? BAD : GOOD;
+    const tpl     = pool[Math.floor(Math.random() * pool.length)];
+    // evitar spam en el mismo carril
+    const sameL   = items.filter(i => i.lane === lane && i.x < 160);
+    if (sameL.length > 0) return;
+
+    items.push({
+      x:      -60,
+      y:      laneY(lane),
+      lane,
+      size:   52,
+      emoji:  tpl.emoji,
+      name:   tpl.name,
+      pts:    tpl.pts   || 0,
+      bad:    tpl.penalty || false,
+      cut:    false,
+      scaleAnim: 1,
+      opacity: 1,
+    });
+  }
+
+  /* ── PARTÍCULAS ── */
+  function spawnChop(x, y, emoji) {
+    // Mitades volando
+    for (let i = 0; i < 2; i++) {
+      particles.push({
+        type: "half",
+        x, y,
+        emoji,
+        vx: (i === 0 ? -1 : 1) * (2 + Math.random() * 3),
+        vy: -3 - Math.random() * 3,
+        rot: 0,
+        rotV: (Math.random() - 0.5) * 0.3,
+        life: 1, size: 32,
+      });
+    }
+    // Gotitas
+    const colors = ["#ff5252","#ffd740","#69f0ae","#fff"];
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd   = 2 + Math.random() * 4;
+      particles.push({
+        type: "dot",
+        x, y,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - 2,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1, size: 3 + Math.random() * 4,
+      });
+    }
+  }
+
+  function spawnSlash(x, y) {
+    slashLines.push({ x, y, life: 1 });
+  }
+
+  function spawnFloat(x, y, text, color) {
+    floats.push({ x, y, text, color, life: 1, vy: -2 });
+  }
+
+  /* ── INPUT ── */
+  function handleClick(cx, cy) {
+    if (!gameRunning) return;
+    const rect  = canvas.getBoundingClientRect();
+    const scale = canvas.width / rect.width;
+    const mx    = (cx - rect.left) * scale;
+    const my    = (cy - rect.top)  * scale;
+
+    knifeAnim = 1;  // dispara animación corte
+
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      if (it.cut) continue;
+      const dx = mx - it.x, dy = my - it.y;
+      if (dx*dx + dy*dy < (it.size * 0.75) ** 2) {
+        it.cut = true;
+
+        if (it.bad) {
+          // ¡Tocaste algo malo!
+          spawnFloat(it.x, it.y - 40, `☠️ -1 vida`, "#ff5252");
+          lives--;
+          updateLives();
+          if (lives <= 0) { endGame(); return; }
+        } else {
+          spawnChop(it.x, it.y, it.emoji);
+          spawnSlash(it.x, it.y);
+          const bonus = it.name === "Bonus";
+          spawnFloat(it.x, it.y - 44, `${bonus ? "🎉 " : ""}+${it.pts}`, bonus ? "#ffd740" : "#69f0ae");
+          score += it.pts;
+          scoreEl.textContent = score;
+        }
+
+        items.splice(i, 1);
+        return;
+      }
+    }
+  }
+
+  canvas.addEventListener("mousedown",  e => handleClick(e.clientX, e.clientY));
+  canvas.addEventListener("touchstart", e => {
+    e.preventDefault();
+    mouseX = (e.touches[0].clientX - canvas.getBoundingClientRect().left) * (canvas.width / canvas.getBoundingClientRect().width);
+    mouseY = (e.touches[0].clientY - canvas.getBoundingClientRect().top)  * (canvas.width / canvas.getBoundingClientRect().width);
+    handleClick(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", e => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    const s = canvas.width / r.width;
+    mouseX = (e.touches[0].clientX - r.left) * s;
+    mouseY = (e.touches[0].clientY - r.top)  * s;
+  }, { passive: false });
+
+  /* ── LIVES ── */
+  function updateLives() {
+    livesEl.textContent = "❤️".repeat(lives) + "🖤".repeat(Math.max(0, 3 - lives));
+  }
+
+  /* ── UPDATE ── */
+  function update() {
+    if (!gameRunning) return;
+    time++;
+
+    // Dificultad
+    if (time % 500 === 0) {
+      beltSpeed  = Math.min(6.5, beltSpeed  + 0.35);
+      spawnRate  = Math.max(55,  spawnRate  - 8);
+    }
+
+    // Spawn
+    if (time % spawnRate === 0) spawnItem();
+    if (beltSpeed > 4 && time % Math.floor(spawnRate * 0.7) === 0) spawnItem();
+
+    // Animación cuchillo
+    if (knifeAnim > 0) knifeAnim = Math.max(0, knifeAnim - 0.12);
+
+    // Items
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      it.x += beltSpeed;
+
+      if (it.x > canvas.width + 60) {
+        items.splice(i, 1);
+        if (!it.bad) {
+          // Se escapó un ingrediente bueno
+          lives--;
+          updateLives();
+          spawnFloat(canvas.width - 40, laneY(it.lane), "💨 ¡Escapó!", "#ff5252");
+          if (lives <= 0) endGame();
+        }
+      }
+    }
+
+    // Partículas
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x  += p.vx; p.y += p.vy;
+      p.vy += 0.22;
+      if (p.rot !== undefined) p.rot += p.rotV;
+      p.life -= 0.04;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // Slash lines
+    for (let i = slashLines.length - 1; i >= 0; i--) {
+      slashLines[i].life -= 0.1;
+      if (slashLines[i].life <= 0) slashLines.splice(i, 1);
+    }
+
+    // Floats
+    for (let i = floats.length - 1; i >= 0; i--) {
+      floats[i].y += floats[i].vy;
+      floats[i].life -= 0.028;
+      if (floats[i].life <= 0) floats.splice(i, 1);
+    }
+  }
+
+  /* ── DRAW ── */
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // ── Fondo: azulejos cocina ──
+    const tileSize = 40;
+    for (let tx = 0; tx < canvas.width; tx += tileSize) {
+      for (let ty = 0; ty < canvas.height; ty += tileSize) {
+        const light = ((tx / tileSize) + (ty / tileSize)) % 2 === 0;
+        ctx.fillStyle = light ? "#f5f0e8" : "#e0dbd0";
+        ctx.fillRect(tx, ty, tileSize, tileSize);
+      }
+    }
+    // Grilla de azulejos
+    ctx.strokeStyle = "rgba(0,0,0,0.07)";
+    ctx.lineWidth   = 1;
+    for (let tx = 0; tx <= canvas.width;  tx += tileSize) {
+      ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx, canvas.height); ctx.stroke();
+    }
+    for (let ty = 0; ty <= canvas.height; ty += tileSize) {
+      ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(canvas.width, ty); ctx.stroke();
+    }
+
+    // ── Carriles (cintas transportadoras) ──
+    for (let lane = 0; lane < LANE_COUNT; lane++) {
+      const cy  = laneY(lane);
+      const bh  = 80;
+
+      // Cinta base
+      const grad = ctx.createLinearGradient(0, cy - bh/2, 0, cy + bh/2);
+      grad.addColorStop(0,   "#555");
+      grad.addColorStop(0.3, "#888");
+      grad.addColorStop(0.7, "#888");
+      grad.addColorStop(1,   "#555");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, cy - bh/2, canvas.width, bh);
+
+      // Rayas de movimiento en la cinta
+      const offset = (time * beltSpeed * 0.6) % 60;
+      ctx.strokeStyle = "rgba(0,0,0,0.18)";
+      ctx.lineWidth   = 3;
+      for (let rx = -60 + offset; rx < canvas.width + 60; rx += 60) {
+        ctx.beginPath();
+        ctx.moveTo(rx, cy - bh/2);
+        ctx.lineTo(rx + 40, cy + bh/2);
+        ctx.stroke();
+      }
+
+      // Bordes cinta (rodillos)
+      const rollerGrad = ctx.createLinearGradient(0, cy - bh/2 - 10, 0, cy - bh/2 + 10);
+      rollerGrad.addColorStop(0, "#aaa");
+      rollerGrad.addColorStop(1, "#666");
+      ctx.fillStyle = rollerGrad;
+      ctx.fillRect(0, cy - bh/2 - 8, canvas.width, 8);
+
+      const rollerGrad2 = ctx.createLinearGradient(0, cy + bh/2, 0, cy + bh/2 + 10);
+      rollerGrad2.addColorStop(0, "#666");
+      rollerGrad2.addColorStop(1, "#aaa");
+      ctx.fillStyle = rollerGrad2;
+      ctx.fillRect(0, cy + bh/2, canvas.width, 8);
+
+      // Etiqueta carril
+      ctx.font      = "bold 10px 'Nunito'";
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.textAlign = "left";
+      ctx.fillText(`CINTA ${lane + 1}`, 8, cy + 4);
+    }
+
+    // ── Zona peligro (derecha) ──
+    const dangerGrad = ctx.createLinearGradient(canvas.width - 60, 0, canvas.width, 0);
+    dangerGrad.addColorStop(0, "rgba(229,57,53,0)");
+    dangerGrad.addColorStop(1, "rgba(229,57,53,0.25)");
+    ctx.fillStyle = dangerGrad;
+    ctx.fillRect(canvas.width - 60, 0, 60, canvas.height);
+
+    // ── Items ──
+    for (let it of items) {
+      ctx.save();
+      ctx.translate(it.x, it.y);
+
+      if (it.bad) {
+        // Glow rojo pulsante — shadowBlur no afecta el color del emoji
+        const pulse = 0.7 + 0.3 * Math.sin(time * 0.18);
+        ctx.shadowColor = `rgba(255,30,30,${pulse})`;
+        ctx.shadowBlur  = 22 + 10 * Math.sin(time * 0.18);
+      }
+
+      ctx.font         = `${it.size}px Arial`;
+      ctx.textAlign    = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(it.emoji, 0, 0);
+
+      // Apagar shadow
+      ctx.shadowBlur  = 0;
+      ctx.shadowColor = "transparent";
+
+      // Badge ☠️ pulsante en esquina superior derecha
+      if (it.bad) {
+        const bp = 0.8 + 0.2 * Math.sin(time * 0.22);
+        ctx.globalAlpha  = bp;
+        ctx.font         = "18px Arial";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText("☠️", it.size * 0.38, -it.size * 0.38);
+        ctx.globalAlpha  = 1;
+      }
+
+      // Nombre debajo
+      ctx.font         = "bold 11px 'Nunito'";
+      ctx.fillStyle    = it.bad ? "#ff3030" : "rgba(0,0,0,0.55)";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(it.name, 0, it.size * 0.62);
+
+      ctx.restore();
+    }
+
+    // ── Partículas ──
+    for (let p of particles) {
+      ctx.save();
+      ctx.globalAlpha = p.life;
+      if (p.type === "half") {
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.font = `${p.size}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(p.emoji, 0, 0);
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Slash lines ──
+    for (let sl of slashLines) {
+      ctx.globalAlpha = sl.life * 0.7;
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth   = 3;
+      ctx.lineCap     = "round";
+      ctx.beginPath();
+      ctx.moveTo(sl.x - 30, sl.y - 30);
+      ctx.lineTo(sl.x + 30, sl.y + 30);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(sl.x + 30, sl.y - 30);
+      ctx.lineTo(sl.x - 30, sl.y + 30);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Textos flotantes ──
+    for (let f of floats) {
+      ctx.globalAlpha = f.life;
+      ctx.font        = "bold 16px 'Nunito'";
+      ctx.fillStyle   = f.color;
+      ctx.textAlign   = "center";
+      ctx.textBaseline= "alphabetic";
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Cursor cuchillo ──
+    const knifeSwing = knifeAnim * 0.6;   // rotación máx al cortar
+    ctx.save();
+    ctx.translate(mouseX, mouseY);
+    ctx.rotate(-Math.PI / 4 + knifeSwing);
+
+    // Sombra
+    ctx.shadowColor   = "rgba(0,0,0,0.4)";
+    ctx.shadowBlur    = 8;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+
+    // Hoja
+    ctx.fillStyle = "#cfd8dc";
+    ctx.beginPath();
+    ctx.moveTo(0, -45);
+    ctx.lineTo(8, 0);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-3, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Filo
+    ctx.fillStyle = "#eceff1";
+    ctx.beginPath();
+    ctx.moveTo(0, -45);
+    ctx.lineTo(2, 0);
+    ctx.lineTo(0, 10);
+    ctx.closePath();
+    ctx.fill();
+
+    // Mango
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#5d4037";
+    ctx.beginPath();
+    ctx.roundRect(-5, 10, 10, 26, 3);
+    ctx.fill();
+
+    // Remaches
+    ctx.fillStyle = "#8d6e63";
+    for (let ry of [16, 24, 32]) {
+      ctx.beginPath();
+      ctx.arc(0, ry, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  /* ── LOOP ── */
+  function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+
+  function endGame() {
+    gameRunning = false;
+    finalEl.textContent  = score;
+    bestFinEl.textContent= bestScore;
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem("picador_best", bestScore);
+      bestEl.textContent     = bestScore;
+      newRecEl.style.display = "block";
+    } else {
+      newRecEl.style.display = "none";
+    }
+    setTimeout(() => { goScreen.style.display = "flex"; }, 350);
+  }
+
+  function startGame() {
+    startScreen.style.display = "none";
+    gameRunning = true;
+  }
+
+  function restart() {
+    items.length = 0; particles.length = 0;
+    floats.length = 0; slashLines.length = 0;
+    score = 0; lives = 3; time = 0;
+    beltSpeed = 2.2; spawnRate = 110;
+    scoreEl.textContent = "0";
+    updateLives();
+    goScreen.style.display = "none";
+    gameRunning = true;
+  }
+
+  updateLives();
+  gameLoop();
+  </script>
+</body>
+</html>
